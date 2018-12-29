@@ -1,10 +1,13 @@
 import React, { Component } from 'react';
 import { BrowserRouter, Route } from 'react-router-dom';
 import Header from './components/Header';
+import Login from './components/Login';
+import Logout from './components/Logout';
 import Footer from './components/Footer';
 import ChordEditor from './components/ChordEditor';
-import { base } from './base';
+import { app, base } from './base';
 import SongList from './components/SongList';
+import { Spinner } from '@blueprintjs/core';
 
 class App extends Component {
   constructor() {
@@ -12,9 +15,9 @@ class App extends Component {
     this.addSong = this.addSong.bind(this);
     this.updateSong = this.updateSong.bind(this);
     this.state = {
-      songs: {
-        
-      }
+      songs: {},
+      authenticated: false,
+      loading: true
     };
   }
 
@@ -38,6 +41,19 @@ class App extends Component {
   }
 
   componentWillMount() {
+    this.removeAuthListener = app.auth().onAuthStateChanged((user) => {
+        if (user) {
+            this.setState({
+                authenticated: true,
+                loading: false
+            });
+        } else {
+            this.setState({
+                authenticated: false,
+                loading: false
+            });
+        }
+    });
     this.songsRef = base.syncState('songs', {
         context: this,
         state: 'songs'
@@ -45,19 +61,29 @@ class App extends Component {
   }
 
   componentWillUnmount() {
+    this.removeAuthListener();
     base.removeBinding(this.songsRef);
   }
 
   render() {
+      if (this.state.loading) {
+          return(
+            <div style={{ textAlign: "center", position: "absolute", top: "25%", left: "50%" }}>
+                <h3>Loading</h3>
+                <Spinner />
+            </div>
+          )
+      }
     return (
       <div style={{maxWidth: "1160px", margin:"0 auto"}}>
         <BrowserRouter>
             <div>
-                <Header />
+                <Header authenticated={this.state.authenticated}/>
                 <div className="main-content" style={{padding:"1em"}}>
                     <div className="workspace">
+                    <Route exact path="/login" component={Login}/>
+                    <Route exact path="/logout" component={Logout}/>
                     <Route exact path="/songs" render={(props) => {
-                        const songIds = Object.keys(this.state.songs);
                         return (
                             <SongList songs={this.state.songs}/>
                         )
