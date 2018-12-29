@@ -30,15 +30,38 @@ class Login extends Component {
                 } else {
                     this.setState({ redirect: true });
                 }
-            })
+            });
     }
 
     authWithEmailPassword(event) {
         event.preventDefault();
-        console.table([{
-            email: this.emailInput.value,
-            password: this.passwordInput.value
-        }])
+        const email = this.emailInput.value;
+        const password = this.passwordInput.value;
+
+        app.auth().fetchProvidersForEmail(email).then((provider) => {
+            if (provider.length === 0) {
+                // create user
+                this.loginForm.reset();
+                this.setState({redirect: true});
+                return app.auth().createUserWithEmailAndPassword(email, password);
+            } else if (provider.indexOf("password") === -1) {
+                // they used facebook
+                this.loginForm.reset();
+                this.toaster.show({ intent: Intent.WARNING, message: "Try alternative login." });
+            } else {
+                // sign user in
+                this.loginForm.reset();
+                this.setState({redirect: true});
+                return app.auth().signInWithEmailAndPassword(email, password);
+            }
+        }).then((user) => {
+            if (user && user.email) {
+                this.loginForm.reset();
+                this.setState({redirect: true});
+            }
+        }).catch((error) => {
+            this.toaster.show({ intent: Intent.DANGER, message: error.message });
+        });
     }
 
     render() {
@@ -50,7 +73,7 @@ class Login extends Component {
                 <Toaster ref={(element) => { this.toaster = element }}/>
                 <button style={{width: "100%"}} className="bp3-button bp3-intent-primary" onClick={() => this.authWithFacebook()}>Log In with Facebook</button>
                 <hr style={{marginTop: "10px", marginBottom: "10px"}} />
-                <form onSubmit={(event) => this.authWithEmailPassword(event)}>
+                <form onSubmit={(event) => this.authWithEmailPassword(event)} ref={(form) => { this.loginForm = form }}>
                 <div style={{marginBottom: "10px"}} className="bp3-callout bp3-icon-info-sign">
                     <h5>Note</h5>
                     If you don't have an account already, this form will create your account.
