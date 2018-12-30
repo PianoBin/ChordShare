@@ -24,10 +24,11 @@ class Login extends Component {
 
     authWithFacebook() {
         app.auth().signInWithPopup(facebookProvider)
-            .then((result, error) => {
+            .then((user, error) => {
                 if (error) {
                     this.toaster.show({ intent: Intent.DANGER, message:"Unable to sign in with Facebook" });
                 } else {
+                    this.props.setCurrentUser(user);
                     this.setState({ redirect: true });
                 }
             });
@@ -42,7 +43,6 @@ class Login extends Component {
             if (provider.length === 0) {
                 // create user
                 this.loginForm.reset();
-                this.setState({redirect: true});
                 return app.auth().createUserWithEmailAndPassword(email, password);
             } else if (provider.indexOf("password") === -1) {
                 // they used facebook
@@ -51,13 +51,15 @@ class Login extends Component {
             } else {
                 // sign user in
                 this.loginForm.reset();
-                this.setState({redirect: true});
+                console.log("a");
                 return app.auth().signInWithEmailAndPassword(email, password);
             }
         }).then((user) => {
-            if (user && user.email) {
+            if (user) {
                 this.loginForm.reset();
                 this.setState({redirect: true});
+                this.props.setCurrentUser(user);
+                console.log("b");
             }
         }).catch((error) => {
             this.toaster.show({ intent: Intent.DANGER, message: error.message });
@@ -65,8 +67,9 @@ class Login extends Component {
     }
 
     render() {
+        const { from } = this.props.location.state || { from: { pathname: '/' } };
         if (this.state.redirect) {
-            return <Redirect to='/'/>
+            return <Redirect to={from} />
         }
         return (
             <div style={loginStyles}>
